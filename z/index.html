@@ -136,11 +136,13 @@ h2{margin:0 0 10px;font-size:16px;color:var(--navy)}
   var urlP=null;
   function getUrl(){
     if(!urlP)urlP=new Promise(function(res){
-      var tries=['../config.js','config.js'];
+      var seg='/'+(location.pathname.split('/')[1]||'')+'/';
+      var tries=['../config.js','config.js',seg+'config.js'];
+      var FALLBACK='https://script.google.com/macros/s/AKfycbzhjlDMsgywVJFZ1dfLWmTpUa9UMjv8dNnXy6SlS_m0ZjqRLfl7dsRnKh85smbinGfNqw/exec'; // احتياط إذا تعذّر قراءة config.js
       (function next(){
         var u=String(window.API_URL||'').trim();
         if(/^https:\/\/script\.google\.com\/.+\/exec$/.test(u))return res(u);
-        var s=tries.shift();if(!s)return res('');
+        var s=tries.shift();if(!s)return res(FALLBACK);
         var e=document.createElement('script');e.src=s+'?v='+Date.now();e.onload=e.onerror=next;document.head.appendChild(e);
       })();
     });
