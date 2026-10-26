@@ -1,36 +1,55 @@
 <!doctype html>
 <html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>مكتبة عمر سوفت</title>
-<meta name="theme-color" content="#0D4777">
-<style>html,body{margin:0;height:100%;background:#F4F6FA}iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
-.err{font:18px Tahoma,Arial,sans-serif;color:#0D4777;padding:40px;text-align:center;line-height:1.8}</style>
+<title>حاسبة الطباعة ونقاط الزبائن — مكتبة عمر سوفت</title>
+<meta name="theme-color" content="#0D4777"><link rel="icon" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest">
+<style>html,body{margin:0;height:100%;background:#0D4777}
+.ld{font:18px Tahoma,Arial,sans-serif;color:#fff;padding:60px 24px;text-align:center;line-height:1.8}</style>
 </head><body>
-<!-- ملف واحد يصلح للمكانين: في الأعلى = برنامج العمال، داخل مجلد z = صفحة الزبائن «نقاطي». البرنامج نفسه في Apps Script. -->
+<div class="ld" id="ld">جاري تحميل البرنامج…</div>
+<!-- هذه الصفحة لا تتغير: تجلب البرنامج من Apps Script (ملف index) وتعرضه مباشرة. كل التحديثات تكون في Apps Script فقط. -->
 <script>
 (function(){
-  var cust=/\/z(\/|\/index\.html)?$/.test(location.pathname);
-  document.title=cust?'نقاطي — مكتبة عمر سوفت':'حاسبة الطباعة ونقاط الزبائن — مكتبة عمر سوفت';
-  var ic=document.createElement('link');ic.rel='icon';ic.href=(cust?'../':'')+'icon-192.png';document.head.appendChild(ic);
-  if(!cust){var mf=document.createElement('link');mf.rel='manifest';mf.href='manifest.webmanifest';document.head.appendChild(mf);}
-  // إزالة أي نسخة قديمة مخزّنة في المتصفح
+  var KEY='appHtmlCache1';
+  function say(m){var d=document.getElementById('ld');if(d)d.innerHTML=m;}
   try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});});if(window.caches)caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});});}catch(e){}
-  // config.js يُقرأ دائماً من المجلد الرئيسي وبنسخة جديدة
-  var tries=cust?['../config.js','config.js']:['config.js','../config.js'];
-  function next(){
+  var tries=['config.js','../config.js'];
+  function cfg(){
     var u=String(window.API_URL||'').trim();
-    if(/^https:\/\/script\.google\.com\/.+\/exec$/.test(u))return start(u);
-    var src=tries.shift();
-    if(!src){document.body.innerHTML='<div class="err">'+(cust?'الصفحة غير جاهزة بعد.':'لم يُضبط رابط البرنامج في ملف <b>config.js</b>.<br>ضعوا فيه رابط Apps Script الذي ينتهي بـ <b>/exec</b>.')+'</div>';return;}
-    var s=document.createElement('script');s.src=src+'?v='+Date.now();s.onload=s.onerror=next;document.head.appendChild(s);
+    if(/^https:\/\/script\.google\.com\/.+\/exec$/.test(u))return go(u);
+    var s=tries.shift();if(!s)return say('لم يُضبط رابط البرنامج في ملف <b>config.js</b>.<br>ضعوا فيه رابط Apps Script الذي ينتهي بـ <b>/exec</b>.');
+    var e=document.createElement('script');e.src=s+'?v='+Date.now();e.onload=e.onerror=cfg;document.head.appendChild(e);
   }
-  function start(u){
-    var f=document.createElement('iframe');
-    if(cust){var card=(location.search.match(/[?&](?:card|n)=(\d{1,6})/)||[])[1]||'';f.src=u+'?c=1'+(card?'&card='+card:'');f.title='نقاطي';}
-    else{f.src=u;f.title='البرنامج';f.allow='clipboard-read; clipboard-write; fullscreen';f.addEventListener('load',function(){f.focus();});window.addEventListener('focus',function(){f.focus();});}
-    document.body.appendChild(f);
+  // بديل google.script.run: نفس البرنامج يرسل طلباته إلى Apps Script عبر الإنترنت مباشرة
+  function shim(u){
+    return '<script>window.API_URL='+JSON.stringify(u)+';window.google={script:{run:(function(){function R(s,f){this.s=s;this.f=f}'+
+      'R.prototype.withSuccessHandler=function(h){return new R(h,this.f)};R.prototype.withFailureHandler=function(h){return new R(this.s,h)};'+
+      'R.prototype.api=function(req){var s=this.s,f=this.f;fetch(window.API_URL,{method:"POST",body:JSON.stringify(req),redirect:"follow"})'+
+      '.then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){if(s)s(j)},function(e){if(f)f(e)})};return new R()})()}};<\/script>'+
+      '<link rel="icon" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest">';
   }
-  next();
+  function show(u,html){
+    html=html.replace(/<head[^>]*>/i,function(m){return m+shim(u);});
+    document.open();document.write(html);document.close();
+  }
+  function go(u){
+    fetch(u,{method:'POST',body:JSON.stringify({action:'appHtml'}),redirect:'follow'})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if(!j||!j.ok||!j.html){
+          if(j&&j.err&&j.err.indexOf('عملية غير معروفة')<0)throw new Error(j.err);
+          throw new Error('Code.gs في Apps Script قديم: الصقوا Code.gs الجديد ثم Deploy ← New version.');
+        }
+        try{localStorage.setItem(KEY,j.html);}catch(e){}
+        show(u,j.html);
+      })
+      .catch(function(e){
+        var c='';try{c=localStorage.getItem(KEY)||'';}catch(x){}
+        if(c&&!(e&&/Code\.gs/.test(e.message)))return show(u,c); // بدون إنترنت: آخر نسخة محفوظة
+        say((e&&e.message&&!/fetch|network|JSON/i.test(e.message)?e.message:'تعذّر الاتصال بالبرنامج. تحقق من الإنترنت ثم حدّث الصفحة.')+'<br><br><a style="color:#FFD08A" href="">إعادة المحاولة</a>');
+      });
+  }
+  cfg();
 })();
 </script>
 </body></html>
