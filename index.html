@@ -33,21 +33,32 @@
     document.open();document.write(html);document.close();
   }
   function go(u){
-    fetch(u,{method:'POST',body:JSON.stringify({action:'appHtml'}),redirect:'follow'})
-      .then(function(r){return r.json();})
+    var cached='';try{cached=localStorage.getItem(KEY)||'';}catch(x){}
+    var shown=false;
+    // يفتح فوراً من آخر نسخة محفوظة، ويجلب النسخة الجديدة في الخلفية (تظهر في المرة القادمة)
+    if(cached){shown=true;setTimeout(function(){show(u,cached);},0);}
+    var t0=Date.now(),slow=setInterval(function(){
+      if(shown)return;var s=Math.round((Date.now()-t0)/1000);
+      say('جاري تحميل البرنامج… ('+s+' ث)'+(s>=8?'<br><small>أول فتح بعد كل تحديث قد يأخذ حتى 30 ثانية.</small>':''));
+    },1000);
+    var ctl=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ctl)ctl.abort();},70000);
+    fetch(u,{method:'POST',body:JSON.stringify({action:'appHtml'}),redirect:'follow',signal:ctl?ctl.signal:undefined})
+      .then(function(r){return r.text().then(function(t){try{return JSON.parse(t);}catch(e){throw new Error('ردّ Google ليس بالشكل المنتظر (HTTP '+r.status+'): '+t.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,160));}});})
       .then(function(j){
         if(!j||!j.ok||!j.html){
-          if(j&&j.err&&j.err.indexOf('عملية غير معروفة')<0)throw new Error(j.err);
-          throw new Error('Code.gs في Apps Script قديم: الصقوا Code.gs الجديد ثم Deploy ← New version.');
+          var m=(j&&j.err)||'';
+          throw new Error(/عملية غير معروفة|قديمة|حدّثوا/.test(m)||!m?'Code.gs المنشور في Apps Script ليس آخر نسخة: الصقوا Code.gs الأخير ثم Deploy ← Manage deployments ← ✏️ ← New version ← Deploy.':m);
         }
         try{localStorage.setItem(KEY,j.html);}catch(e){}
-        show(u,j.html);
+        if(!shown){shown=true;show(u,j.html);}
       })
       .catch(function(e){
-        var c='';try{c=localStorage.getItem(KEY)||'';}catch(x){}
-        if(c&&!(e&&/Code\.gs/.test(e.message)))return show(u,c); // بدون إنترنت: آخر نسخة محفوظة
-        say((e&&e.message&&!/fetch|network|JSON/i.test(e.message)?e.message:'تعذّر الاتصال بالبرنامج. تحقق من الإنترنت ثم حدّث الصفحة.')+'<br><br><a style="color:#FFD08A" href="">إعادة المحاولة</a>');
-      });
+        if(shown)return;
+        var m=e&&e.name==='AbortError'?'انتهى وقت الانتظار (70 ثانية) بدون رد من Google.':(e&&e.message||'');
+        if(/Failed to fetch|NetworkError|Load failed|network/i.test(m))m='تعذّر الاتصال بـ Google ('+m+'). تحقق من الإنترنت.';
+        say('⚠️ '+m.replace(/[<>]/g,'')+'<br><br><a style="color:#FFD08A" href="">إعادة المحاولة</a>');
+      })
+      .then(function(){clearInterval(slow);clearTimeout(to);});
   }
   cfg();
 })();
