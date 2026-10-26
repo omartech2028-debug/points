@@ -13,11 +13,13 @@
   var KEY='appHtmlCache1';
   function say(m){var d=document.getElementById('ld');if(d)d.innerHTML=m;}
   try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});});if(window.caches)caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});});}catch(e){}
-  var tries=['config.js','../config.js'];
+  var seg='/'+(location.pathname.split('/')[1]||'')+'/';
+  var tries=['config.js','../config.js',seg+'config.js'];
+  var FALLBACK='https://script.google.com/macros/s/AKfycbzhjlDMsgywVJFZ1dfLWmTpUa9UMjv8dNnXy6SlS_m0ZjqRLfl7dsRnKh85smbinGfNqw/exec'; // احتياط إذا تعذّر قراءة config.js
   function cfg(){
     var u=String(window.API_URL||'').trim();
     if(/^https:\/\/script\.google\.com\/.+\/exec$/.test(u))return go(u);
-    var s=tries.shift();if(!s)return say('لم يُضبط رابط البرنامج في ملف <b>config.js</b>.<br>ضعوا فيه رابط Apps Script الذي ينتهي بـ <b>/exec</b>.');
+    var s=tries.shift();if(!s)return go(FALLBACK);
     var e=document.createElement('script');e.src=s+'?v='+Date.now();e.onload=e.onerror=cfg;document.head.appendChild(e);
   }
   // بديل google.script.run: نفس البرنامج يرسل طلباته إلى Apps Script عبر الإنترنت مباشرة
