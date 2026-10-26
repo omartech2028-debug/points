@@ -1,20 +1,27 @@
 <!doctype html>
 <html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>نقاطي — مكتبة عمر سوفت</title>
-<link rel="icon" href="../icon-192.png"><meta name="theme-color" content="#0D4777">
-<style>html,body{margin:0;height:100%;background:#F4F6FA}iframe{position:fixed;inset:0;width:100%;height:100%;border:0}
-.err{font:18px Tahoma,Arial,sans-serif;color:#0D4777;padding:40px;text-align:center;line-height:1.8}</style>
-<script src="../config.js"></script>
+<title>حاسبة الطباعة ونقاط الزبائن — مكتبة عمر سوفت</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><meta name="theme-color" content="#0D4777">
+<style>
+html,body{margin:0;height:100%;background:#0D4777}
+iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
+.err{font:18px Tahoma,Arial,sans-serif;color:#fff;padding:40px;text-align:center;line-height:1.8}
+</style>
+<script src="config.js"></script>
 </head><body>
-<!-- صفحة الزبائن «نقاطي»: تعرض صفحة الزبائن من Apps Script. لا تتغير أبداً. -->
+<!-- هذه الصفحة تفتح البرنامج الموجود في Apps Script فقط. كل التحديثات تكون في Apps Script، ولا يتغير هنا شيء. -->
 <script>
 (function(){
   var u=String(window.API_URL||'').trim();
-  if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)){document.body.innerHTML='<div class="err">الصفحة غير جاهزة بعد.</div>';return;}
-  var card=(location.search.match(/[?&](?:card|n)=(\d{1,6})/)||[])[1]||'';
-  var f=document.createElement('iframe');f.title='نقاطي';
-  f.src=u+'?c=1'+(card?'&card='+card:'');document.body.appendChild(f);
+  if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)){
+    document.body.innerHTML='<div class="err">لم يُضبط رابط البرنامج في ملف <b>config.js</b>.<br>ضعوا فيه رابط Apps Script الذي ينتهي بـ <b>/exec</b>.</div>';return;
+  }
+  var f=document.createElement('iframe');
+  f.src=u;f.title='البرنامج';f.allow='clipboard-read; clipboard-write; fullscreen';
+  document.body.appendChild(f);
+  f.addEventListener('load',function(){f.focus();});
+  window.addEventListener('focus',function(){f.focus();});
 })();
 </script>
 </body></html>
